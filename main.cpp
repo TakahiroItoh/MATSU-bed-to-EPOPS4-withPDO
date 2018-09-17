@@ -33,8 +33,6 @@ void sendCtrlQS(int);       //Quick Stop
 void sendCtrlHL(int);       //Halt
 //Velocity Setting
 void sendTgtVel(int,int);   //Target Velocity
-//------------------read関数-------------------
-void readActVel(int);       //Actual Velocity
 //-------------------その他--------------------
 void printCANTX(void);      //CAN送信データをPCに表示
 void printCANRX(void);      //CAN受信データをPCに表示
@@ -83,7 +81,7 @@ int main(){
     sendCtrlEN(node1);
     myled = 0b0111;
     wait(0.1);
-    pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END 'v'=ActVel\r\n");
+    pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
     //-------------------------------------------
     while(1){
@@ -110,12 +108,6 @@ int main(){
             sendCtrlSD(node1);
             Serialdata = 0;
             break;
-        }
-        else if(Serialdata == 'v'){
-            //Actual Velocityを尋ねる
-            pc.printf("Read Actual Velocity\r\n");
-            readActVel(node1);
-            Serialdata = 0;
         }
         else if(Serialdata == 'm'){
             pc.printf("Send Operating Mode\r\n");
@@ -159,7 +151,6 @@ void sendOPMode(int nodeID){
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
 }
-
 //0x2B-6040-00-0000-//-//
 void sendCtrlRS(int nodeID){
     canmsgTx.id = 0x600+nodeID;
@@ -177,7 +168,6 @@ void sendCtrlRS(int nodeID){
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
 }
-
 //0x2B-6040-00-0006-//-//
 void sendCtrlSD(int nodeID){
     canmsgTx.id = 0x600+nodeID;
@@ -195,7 +185,6 @@ void sendCtrlSD(int nodeID){
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
 }
-
 //0x2B-6040-00-000F-//-//
 void sendCtrlEN(int nodeID){
     canmsgTx.id = 0x600+nodeID;
@@ -213,7 +202,6 @@ void sendCtrlEN(int nodeID){
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
 }
-
 //0x2B-6040-00-000B-//-//
 void sendCtrlQS(int nodeID){
     canmsgTx.id = 0x600+nodeID;
@@ -231,7 +219,6 @@ void sendCtrlQS(int nodeID){
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
 }
-
 //0x2B-6040-00-010F-//-//
 void sendCtrlHL(int nodeID){
     canmsgTx.id = 0x600+nodeID;
@@ -249,7 +236,6 @@ void sendCtrlHL(int nodeID){
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
 }
-
 //0x2B-60FF-00-[user data(4Byte)]
 void sendTgtVel(int nodeID,int rpm){
     pc.printf("%drpm|0x%08x\r\n",rpm,rpm);  //回転数送信データの表示
@@ -273,17 +259,6 @@ void sendTgtVel(int nodeID,int rpm){
     wait(0.5);
 }
 
-void readActVel(int nodeID){
-    //値が欲しいobjectのアドレスを送る
-    canmsgTx.id = 0x600+nodeID;
-    canmsgTx.len = 4;       //Data Length
-    canmsgTx.data[0] = 0x40;//|0Byte:40|
-    canmsgTx.data[1] = 0x6C;//Index LowByte
-    canmsgTx.data[2] = 0x60;//Index HighByte
-    canmsgTx.data[3] = 0x00;//sub-Index
-    canPort.write(canmsgTx);
-}
-
 //送信データの表示
 void printCANTX(void){
   //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
@@ -293,7 +268,6 @@ void printCANTX(void){
     }
     pc.printf("\r\n");
 }
-
 //受信データの表示
 void printCANRX(void){
   //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
@@ -303,12 +277,12 @@ void printCANRX(void){
     }
     pc.printf("\r\n");
 }
-
+//CAN受信割り込み処理
 void CANdataRX(void){
     canPort.read(canmsgRx);
     printCANRX();
 }
-
+//Serial受信割り込み処理
 void SerialRX(void){
     Serialdata = pc.getc();
     pc.printf("%c\r\n",Serialdata);
