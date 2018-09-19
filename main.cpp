@@ -23,6 +23,8 @@ CAN canPort(P0_13, P0_18);  //CAN name(PinName rd, PinName td)
 
 //プロトタイプ宣言
 //------------------send関数-------------------
+//NMT CANMessage
+void sendNMTOpn(void);
 //mode Setting
 void sendOPMode(int);       //Operating Mode
 //Control Word
@@ -134,6 +136,15 @@ int main(){
     myled = 0b0000;
 }
 
+//COB-ID:0 0x01-00-//-//-//-//-//-//
+void sendNMTOpn(void){
+    canmsgTx.id = 0x0;
+    canmsgTx.len = 2;
+    canmsgTx.data[0] = 0x01;//0x01:enter NMT state "Operational"
+    canmsgTx.data[1] = 0x00;//send All nodes
+    printCANTX();
+    canPort.write(canmsgTx);
+}
 //0x2F-6060-00-03-//-//-//
 void sendOPMode(int nodeID){
     canmsgTx.id = 0x600+nodeID;
