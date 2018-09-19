@@ -68,7 +68,7 @@ int main(){
     pc.printf("Send Operating Mode\r\n");
     sendOPMode(node1);
     myled = 0b0011;
-    wait(0.1);
+    wait(0.5);
     //コントロールワードのリセット
     pc.printf("Send Reset Command\r\n");
     sendCtrlRS(node1);
