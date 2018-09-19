@@ -82,7 +82,13 @@ int main(){
     pc.printf("Send SW on & Enable Command\r\n");
     sendCtrlEN(node1);
     myled = 0b0111;
-    wait(0.1);
+    wait(0.5);
+
+    //NMT State
+    pc.printf("Send NMT Operational Command\r\n");
+    sendNMTOpn();
+    wait(0.5);
+
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
     //-------------------------------------------
