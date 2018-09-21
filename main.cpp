@@ -1,7 +1,7 @@
 //-------------------------------------------------------
 //for MATSU-bed to EPOS4 with "PDO" communication
 //operating mode : "Profile Velocity Mode"
-//MATSU-bedからSync信号を送り、PDO communicationを行う
+//MATSU-bedからSYNC信号を送り、PDO communicationを行う
 //Created by Takahiro Itoh
 //-------------------------------------------------------
 
