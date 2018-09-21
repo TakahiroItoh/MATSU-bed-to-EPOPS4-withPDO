@@ -20,6 +20,7 @@ BusOut myled(LED1, LED2, LED3, LED4);
 CANMessage canmsgTx;
 CANMessage canmsgRx;
 CAN canPort(P0_13, P0_18);  //CAN name(PinName rd, PinName td)
+Ticker SYNC;
 
 //プロトタイプ宣言
 //------------------send関数-------------------
@@ -100,6 +101,7 @@ int main(){
             //目標速度を送信後、Enableコマンド送信
             pc.printf("Send Target Velocity\r\n");
             sendTgtVel(node1,rpm);
+            SYNC.attach(&sendSYNC,0.01);
             Serialdata = 0;
             myled = 0b1111;
         }
@@ -112,6 +114,7 @@ int main(){
         }
         else if(Serialdata == 'q'){
             //quick stopコマンド送信
+            SYNC.detach();
             pc.printf("Send Quick Stop\r\nPROGRAM END\r\n");
             sendCtrlQS(node1);
             pc.printf("Send Shutdown Command\r\n");
