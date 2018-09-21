@@ -162,7 +162,6 @@ void sendSYNC(void){
     printCANTX();
     canPort.write(canmsgTx);
 }
-}
 //0x2F-6060-00-03-//-//-//
 void sendOPMode(int nodeID){
     canmsgTx.id = 0x600+nodeID;
