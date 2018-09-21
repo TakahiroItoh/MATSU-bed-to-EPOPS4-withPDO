@@ -23,8 +23,10 @@ CAN canPort(P0_13, P0_18);  //CAN name(PinName rd, PinName td)
 
 //プロトタイプ宣言
 //------------------send関数-------------------
-//NMT CANMessage
+//NMT Message
 void sendNMTOpn(void);
+//SYNC Message
+void sendSYNC(void);
 //mode Setting
 void sendOPMode(int);       //Operating Mode
 //Control Word
@@ -150,6 +152,13 @@ void sendNMTOpn(void){
     canmsgTx.data[1] = 0x00;//send All nodes
     printCANTX();
     canPort.write(canmsgTx);
+}
+void sendSYNC(void){
+    canmsgTx.id = 0x0;
+    canmsgTx.len = 0;
+    printCANTX();
+    canPort.write(canmsgTx);
+}
 }
 //0x2F-6060-00-03-//-//-//
 void sendOPMode(int nodeID){
