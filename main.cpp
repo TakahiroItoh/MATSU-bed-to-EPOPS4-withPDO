@@ -83,7 +83,7 @@ int main(){
             //目標速度を送信後、Enableコマンド送信
             pc.printf("Send Target Velocity\r\n");
             sendTgtVel(node1,rpm);
-            SYNC.attach(&sendSYNC,0.01);
+            SYNC.attach(&sendSYNC,0.1);
             Serialdata = 0;
             myled = 0b1111;
         }
@@ -275,7 +275,7 @@ void sendTgtVel(int nodeID,int rpm){
 
 //送信データの表示
 void printCANTX(void){
-  //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
+    //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
     pc.printf("0x%3x|",canmsgTx.id);
     for(char i=0;i < canmsgTx.len;i++){
         pc.printf("%02x|",canmsgTx.data[i]);
@@ -284,12 +284,14 @@ void printCANTX(void){
 }
 //受信データの表示
 void printCANRX(void){
-  //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
-    pc.printf("0x%3x|",canmsgRx.id);
-    for(char i=0;i < canmsgRx.len;i++){
-        pc.printf("%02x|",canmsgRx.data[i]);
+    if(canmsgRx.id == 0x4A0){
+        //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
+        pc.printf("0x%3x|",canmsgRx.id);
+        for(char i=0;i < canmsgRx.len;i++){
+            pc.printf("%02x|",canmsgRx.data[i]);
+        }
+        pc.printf("\r\n");
     }
-    pc.printf("\r\n");
 }
 //CAN受信割り込み処理
 void CANdataRX(void){
