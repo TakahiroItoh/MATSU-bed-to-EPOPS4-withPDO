@@ -323,7 +323,7 @@ void printCANRX(void){
 }
 //CAN受信割り込み処理
 void CANdataRX(void){
-    LED != LED;
+    LED=~LED;
     //canPort.read(canmsgRx);
 }
 //Serial受信割り込み処理
