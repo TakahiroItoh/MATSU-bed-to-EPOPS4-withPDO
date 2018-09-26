@@ -25,6 +25,7 @@ Ticker SYNC;
 //プロトタイプ宣言
 //------------------send関数-------------------
 //NMT Message
+void sendNMTPreOpn(void);
 void sendNMTOpn(void);
 //SYNC Message
 void sendSYNC(void);
@@ -79,6 +80,8 @@ int main(){
     pc.printf("Send SW on & Enable Command\r\n");
     sendCtrlEN(node1);
     //NMT State
+    pc.printf("Send NMT PreOperational Command\r\n");
+    sendNMTPreOpn();
     pc.printf("Send NMT Operational Command\r\n");
     sendNMTOpn();
 //-----ここで止まる(LEDが3つ光らない)---------
@@ -140,6 +143,16 @@ int main(){
     }
 }
 
+//COB-ID:0 0x01-00-//-//-//-//-//-//
+void sendNMTPreOpn(void){
+    canmsgTx.id = 0x0;
+    canmsgTx.len = 2;
+    canmsgTx.data[0] = 0x80;//0x01:enter NMT state "PreOperational"
+    canmsgTx.data[1] = 0x00;//send All nodes
+    printCANTX();
+    canPort.write(canmsgTx);
+    wait(0.2);
+}
 //COB-ID:0 0x01-00-//-//-//-//-//-//
 void sendNMTOpn(void){
     canmsgTx.id = 0x0;
