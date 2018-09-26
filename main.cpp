@@ -50,7 +50,7 @@ int main(){
     pc.attach(SerialRX);
     //CAN
     canPort.frequency(1000000); //Bit Rate:1MHz
-    canPort.attach(CANdataRX,CAN::RxIrq);
+    //canPort.attach(CANdataRX,CAN::RxIrq);
     int node1 = 1;  //CAN node Setting
     //User Setting
     int rpm = 4000; //Velocity Setting[rpm]
@@ -84,7 +84,6 @@ int main(){
     sendNMTPreOpn();
     pc.printf("Send NMT Operational Command\r\n");
     sendNMTOpn();
-//-----ここで止まる(LEDが3つ光らない)---------
 
     myled = 0b0111;
 
@@ -166,7 +165,7 @@ void sendNMTOpn(void){
 void sendSYNC(void){
     canmsgTx.id = 0x80;
     canmsgTx.len = 0;
-    printCANRX();
+    //printCANRX();
     canPort.write(canmsgTx);
 }
 //0x2F-6060-00-03-//-//-//
