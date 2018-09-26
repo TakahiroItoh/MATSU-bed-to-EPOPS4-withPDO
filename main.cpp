@@ -81,8 +81,10 @@ int main(){
     //NMT State
     pc.printf("Send NMT Operational Command\r\n");
     sendNMTOpn();
+//-----ここで止まる(LEDが3つ光らない)---------
+
     myled = 0b0111;
-    
+
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
     //-------------------------------------------
