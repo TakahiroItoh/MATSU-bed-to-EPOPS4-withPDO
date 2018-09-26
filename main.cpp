@@ -17,6 +17,7 @@ USBSerial pc;
 char Serialdata;
 BusOut myled(LED1, LED2, LED3);
 DigitalOut LED(LED4);
+int count=0;
 
 CANMessage canmsgTx;
 CANMessage canmsgRx;
@@ -325,6 +326,8 @@ void printCANRX(void){
 //CAN受信割り込み処理
 void CANdataRX(void){
     LED=~LED;
+    count=count+1;
+    pc.printf("%d",count);
     //canPort.read(canmsgRx);
 }
 //Serial受信割り込み処理
