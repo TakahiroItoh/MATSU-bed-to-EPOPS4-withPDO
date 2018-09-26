@@ -67,13 +67,22 @@ int main(){
     }
     Serialdata = 0;
     pc.printf("KEY DETECTED!!\r\nPROGRAM START\r\n");
-    wait(0.5);
     myled = 0b0011;
+    wait(1);
+
+    //コントロールワードのリセット
+    pc.printf("Send Reset Command\r\n");
+    sendCtrlRS(node1);
+    //Shutdown,Enableコマンド送信｜リセット
+    pc.printf("Send Shutdown Command\r\n");
+    sendCtrlSD(node1);
+    pc.printf("Send SW on & Enable Command\r\n");
+    sendCtrlEN(node1);
     //NMT State
     pc.printf("Send NMT Operational Command\r\n");
     sendNMTOpn();
     myled = 0b0111;
-
+    
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
     //-------------------------------------------
@@ -83,7 +92,7 @@ int main(){
             //目標速度を送信後、Enableコマンド送信
             pc.printf("Send Target Velocity\r\n");
             sendTgtVel(node1,rpm);
-            SYNC.attach(&sendSYNC,0.01);
+            SYNC.attach(&sendSYNC,0.1);
             Serialdata = 0;
             myled = 0b1111;
         }
@@ -123,7 +132,10 @@ int main(){
         }
         //-------------------------------------------
     }
-    myled = 0b0000;
+    while (1) {
+        myled = 0b0000;
+        wait(0.5);
+    }
 }
 
 //COB-ID:0 0x01-00-//-//-//-//-//-//
@@ -137,9 +149,9 @@ void sendNMTOpn(void){
     wait(0.2);
 }
 void sendSYNC(void){
-    canmsgTx.id = 0x0;
+    canmsgTx.id = 0x80;
     canmsgTx.len = 0;
-    printCANTX();
+    printCANRX();
     canPort.write(canmsgTx);
 }
 //0x2F-6060-00-03-//-//-//
@@ -275,7 +287,7 @@ void sendTgtVel(int nodeID,int rpm){
 
 //送信データの表示
 void printCANTX(void){
-  //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
+    //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
     pc.printf("0x%3x|",canmsgTx.id);
     for(char i=0;i < canmsgTx.len;i++){
         pc.printf("%02x|",canmsgTx.data[i]);
@@ -284,7 +296,7 @@ void printCANTX(void){
 }
 //受信データの表示
 void printCANRX(void){
-  //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
+    //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
     pc.printf("0x%3x|",canmsgRx.id);
     for(char i=0;i < canmsgRx.len;i++){
         pc.printf("%02x|",canmsgRx.data[i]);
@@ -294,7 +306,6 @@ void printCANRX(void){
 //CAN受信割り込み処理
 void CANdataRX(void){
     canPort.read(canmsgRx);
-    printCANRX();
 }
 //Serial受信割り込み処理
 void SerialRX(void){
