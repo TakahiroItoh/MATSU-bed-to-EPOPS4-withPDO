@@ -73,6 +73,7 @@ int main(){
     Serialdata = 0;
     pc.printf("KEY DETECTED!!\r\nPROGRAM START\r\n");
     myled = 0b011;
+    LED = 0;
     wait(1);
 
     //コントロールワードのリセット
