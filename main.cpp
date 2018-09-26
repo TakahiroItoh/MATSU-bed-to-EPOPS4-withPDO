@@ -15,7 +15,8 @@
 
 USBSerial pc;
 char Serialdata;
-BusOut myled(LED1, LED2, LED3, LED4);
+BusOut myled(LED1, LED2, LED3);
+DigitalOut LED(LED4);
 
 CANMessage canmsgTx;
 CANMessage canmsgRx;
@@ -50,25 +51,28 @@ int main(){
     pc.attach(SerialRX);
     //CAN
     canPort.frequency(1000000); //Bit Rate:1MHz
-    //canPort.attach(CANdataRX,CAN::RxIrq);
+    canPort.attach(CANdataRX,CAN::RxIrq);
     int node1 = 1;  //CAN node Setting
     //User Setting
     int rpm = 4000; //Velocity Setting[rpm]
-    myled = 0b0001;
+    LED = 1;
+    myled = 0b001;
     pc.printf("Press 's' to Start\r\n");
     while(1){
         if(Serialdata == 's'){
             Serialdata = 0;
             break;
         }
+        LED = 0;
         myled = 0b0001;
         wait(0.5);
+        LED = 1;
         myled = 0b0000;
         wait(0.5);
     }
     Serialdata = 0;
     pc.printf("KEY DETECTED!!\r\nPROGRAM START\r\n");
-    myled = 0b0011;
+    myled = 0b011;
     wait(1);
 
     //コントロールワードのリセット
@@ -85,7 +89,7 @@ int main(){
     pc.printf("Send NMT Operational Command\r\n");
     sendNMTOpn();
 
-    myled = 0b0111;
+    myled = 0b111;
 
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
@@ -98,14 +102,14 @@ int main(){
             sendTgtVel(node1,rpm);
             SYNC.attach(&sendSYNC,0.1);
             Serialdata = 0;
-            myled = 0b1111;
+            myled = 0b111;
         }
         else if(Serialdata == 'h'){
             //Haltコマンド送信
             pc.printf("Send Halt Command\r\n");
             sendCtrlHL(node1);
             Serialdata = 0;
-            myled = 0b0111;
+            myled = 0b111;
         }
         else if(Serialdata == 'q'){
             //quick stopコマンド送信
@@ -120,7 +124,7 @@ int main(){
         else if(Serialdata == 'm'){
             pc.printf("Send Operating Mode\r\n");
             sendOPMode(node1);
-            myled = 0b0011;
+            myled = 0b011;
             //コントロールワードのリセット
             pc.printf("Send Reset Command\r\n");
             sendCtrlRS(node1);
@@ -131,13 +135,13 @@ int main(){
             sendCtrlEN(node1);
             pc.printf("Send NMT Operational Command\r\n");
             sendNMTOpn();
-            myled = 0b0111;
+            myled = 0b111;
             Serialdata = 0;
         }
         //-------------------------------------------
     }
     while (1) {
-        myled = 0b0000;
+        myled = 0b000;
         wait(0.5);
     }
 }
@@ -319,7 +323,8 @@ void printCANRX(void){
 }
 //CAN受信割り込み処理
 void CANdataRX(void){
-    canPort.read(canmsgRx);
+    LED != LED;
+    //canPort.read(canmsgRx);
 }
 //Serial受信割り込み処理
 void SerialRX(void){
