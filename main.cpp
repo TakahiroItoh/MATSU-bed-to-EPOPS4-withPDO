@@ -52,7 +52,7 @@ int main(){
     pc.attach(SerialRX);
     //CAN
     canPort.frequency(1000000); //Bit Rate:1MHz
-    canPort.attach(CANdataRX,CAN::RxIrq);
+    canPort.attach(CANdataRX);
     int node1 = 1;  //CAN node Setting
     //User Setting
     int rpm = 4000; //Velocity Setting[rpm]
