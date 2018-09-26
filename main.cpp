@@ -328,7 +328,7 @@ void CANdataRX(void){
     LED=~LED;
     count=count+1;
     pc.printf("%d",count);
-    //canPort.read(canmsgRx);
+    canPort.read(canmsgRx);
 }
 //Serial受信割り込み処理
 void SerialRX(void){
