@@ -54,7 +54,6 @@ int main(){
     int node1 = 1;              //CAN node
     //User Setting
     int rpm = 4000;             //Velocity[rpm]
-    LED = 1;
     myled = 0b0001;
 
     pc.printf("Press 's' to Start\r\n");
