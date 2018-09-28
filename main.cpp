@@ -15,8 +15,7 @@
 
 USBSerial pc;
 char Serialdata;
-BusOut myled(LED1, LED2, LED3);
-DigitalOut LED(LED4);
+BusOut myled(LED1, LED2, LED3,LED4);
 int count=0;
 
 CANMessage canmsgTx;
@@ -48,32 +47,27 @@ void CANdataRX(void);       //CAN受信処理
 void SerialRX(void);        //Serial受信処理
 
 int main(){
-    //Serial
-    pc.attach(SerialRX);
-    //CAN
+    //Serial Setting
+    pc.attach(SerialRX);        //Serial受信割り込み開始
+    //CAN Setting
     canPort.frequency(1000000); //Bit Rate:1MHz
-    int node1 = 1;  //CAN node Setting
+    int node1 = 1;              //CAN node
     //User Setting
-    int rpm = 4000; //Velocity Setting[rpm]
+    int rpm = 4000;             //Velocity[rpm]
     LED = 1;
-    myled = 0b001;
+    myled = 0b0001;
+
     pc.printf("Press 's' to Start\r\n");
     while(1){
         if(Serialdata == 's'){
-            Serialdata = 0;
             break;
         }
-        LED = 0;
-        myled = 0b0001;
-        wait(0.5);
-        LED = 1;
-        myled = 0b0000;
+        myled=~myled;
         wait(0.5);
     }
     Serialdata = 0;
     pc.printf("KEY DETECTED!!\r\nPROGRAM START\r\n");
-    myled = 0b011;
-    LED = 0;
+    myled = 0b0011;
     wait(1);
 
     //コントロールワードのリセット
@@ -84,17 +78,17 @@ int main(){
     sendCtrlSD(node1);
     pc.printf("Send SW on & Enable Command\r\n");
     sendCtrlEN(node1);
-    //NMT State
+    //NMTコマンドの送信
     pc.printf("Send NMT PreOperational Command\r\n");
     sendNMTPreOpn();
     pc.printf("Send NMT Operational Command\r\n");
     sendNMTOpn();
 
-    myled = 0b111;
-    canPort.attach(CANdataRX);
+    myled = 0b0111;
+    canPort.attach(CANdataRX);  //CAN受信割り込み開始
 
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
-    pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
+    pc.printf("If EPOS4 dose not work, press 'm'(set mode once again)\r\n");
     //-------------------------------------------
     while(1){
         //-------------送信コマンドを選択--------------
@@ -102,16 +96,16 @@ int main(){
             //目標速度を送信後、Enableコマンド送信
             pc.printf("Send Target Velocity\r\n");
             sendTgtVel(node1,rpm);
-            SYNC.attach(&sendSYNC,0.1);
+            SYNC.attach(&sendSYNC,0.5);
             Serialdata = 0;
-            myled = 0b111;
+            myled = 0b1111;
         }
         else if(Serialdata == 'h'){
             //Haltコマンド送信
             pc.printf("Send Halt Command\r\n");
             sendCtrlHL(node1);
             Serialdata = 0;
-            myled = 0b111;
+            myled = 0b0111;
         }
         else if(Serialdata == 'q'){
             //quick stopコマンド送信
@@ -126,18 +120,14 @@ int main(){
         else if(Serialdata == 'm'){
             pc.printf("Send Operating Mode\r\n");
             sendOPMode(node1);
-            myled = 0b011;
-            //コントロールワードのリセット
+            myled = 0b0011;
             pc.printf("Send Reset Command\r\n");
             sendCtrlRS(node1);
-            //Shutdown,Enableコマンド送信｜リセット
             pc.printf("Send Shutdown Command\r\n");
             sendCtrlSD(node1);
             pc.printf("Send SW on & Enable Command\r\n");
             sendCtrlEN(node1);
-            pc.printf("Send NMT Operational Command\r\n");
-            sendNMTOpn();
-            myled = 0b111;
+            myled = 0b0111;
             Serialdata = 0;
         }
         //-------------------------------------------
@@ -325,7 +315,6 @@ void printCANRX(void){
 }
 //CAN受信割り込み処理
 void CANdataRX(void){
-    LED=~LED;
     count=count+1;
     pc.printf("%d",count);
     canPort.read(canmsgRx);
