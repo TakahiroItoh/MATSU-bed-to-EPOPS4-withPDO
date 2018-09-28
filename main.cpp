@@ -54,7 +54,7 @@ int main(){
     int node1 = 1;              //CAN node
     //User Setting
     int rpm = 4000;             //Velocity[rpm]
-    myled = 0b0001;
+    myled = 0b0101;
 
     pc.printf("Press 's' to Start\r\n");
     while(1){
@@ -82,9 +82,8 @@ int main(){
     sendNMTPreOpn();
     pc.printf("Send NMT Operational Command\r\n");
     sendNMTOpn();
-
     myled = 0b0111;
-    canPort.attach(CANdataRX);  //CAN受信割り込み開始
+    canPort.attach(CANdataRX,CAN::RxIrq);  //CAN受信割り込み開始
 
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("If EPOS4 dose not work, press 'm'(set mode once again)\r\n");
@@ -160,8 +159,8 @@ void sendNMTOpn(void){
 void sendSYNC(void){
     canmsgTx.id = 0x80;
     canmsgTx.len = 0;
-    //printCANRX();
     canPort.write(canmsgTx);
+    printCANRX();
 }
 //0x2F-6060-00-03-//-//-//
 void sendOPMode(int nodeID){
@@ -305,17 +304,17 @@ void printCANTX(void){
 }
 //受信データの表示
 void printCANRX(void){
-    //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
+    char num;
+    num = canmsgRx.len;
     pc.printf("0x%3x|",canmsgRx.id);
     for(char i=0;i < canmsgRx.len;i++){
-        pc.printf("%02x|",canmsgRx.data[i]);
+        num = num - 1;
+        pc.printf("%02x",canmsgRx.data[num]);
     }
     pc.printf("\r\n");
 }
 //CAN受信割り込み処理
 void CANdataRX(void){
-    count=count+1;
-    pc.printf("%d",count);
     canPort.read(canmsgRx);
 }
 //Serial受信割り込み処理
