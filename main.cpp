@@ -15,6 +15,7 @@
 
 USBSerial pc;
 char Serialdata;
+
 BusOut myled(LED1, LED2, LED3);
 DigitalOut LED(LED4);
 int count=0;
@@ -45,11 +46,8 @@ void sendTgtVel(int,int);   //Target Velocity
 void printCANTX(void);      //CAN送信データをPCに表示
 void printCANRX(void);      //CAN受信データをPCに表示
 void CANdataRX(void);       //CAN受信処理
-void SerialRX(void);        //Serial受信処理
 
 int main(){
-    //Serial
-    pc.attach(SerialRX);
     //CAN
     canPort.frequency(1000000); //Bit Rate:1MHz
     canPort.attach(CANdataRX,CAN::RxIrq);
@@ -64,12 +62,9 @@ int main(){
             Serialdata = 0;
             break;
         }
-        LED = 0;
-        myled = 0b0001;
-        wait(0.5);
-        LED = 1;
-        myled = 0b0000;
-        wait(0.5);
+        Serialdata = pc.getc();
+        LED = ~LED;
+        wait(0.1);
     }
     Serialdata = 0;
     pc.printf("KEY DETECTED!!\r\nPROGRAM START\r\n");
@@ -140,6 +135,8 @@ int main(){
             myled = 0b111;
             Serialdata = 0;
         }
+        Serialdata = pc.getc();
+        wait(0.1);
         //-------------------------------------------
     }
     while (1) {
@@ -329,9 +326,4 @@ void CANdataRX(void){
     count=count+1;
     pc.printf("%d",count);
     canPort.read(canmsgRx);
-}
-//Serial受信割り込み処理
-void SerialRX(void){
-    Serialdata = pc.getc();
-    pc.printf("%c\r\n",Serialdata);
 }
