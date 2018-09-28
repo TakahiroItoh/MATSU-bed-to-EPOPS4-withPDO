@@ -52,7 +52,6 @@ int main(){
     pc.attach(SerialRX);
     //CAN
     canPort.frequency(1000000); //Bit Rate:1MHz
-    canPort.attach(CANdataRX,CAN::RxIrq);
     int node1 = 1;  //CAN node Setting
     //User Setting
     int rpm = 4000; //Velocity Setting[rpm]
@@ -92,6 +91,7 @@ int main(){
     sendNMTOpn();
 
     myled = 0b111;
+    canPort.attach(CANdataRX,CAN::RxIrq);
 
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
