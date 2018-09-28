@@ -91,7 +91,7 @@ int main(){
     sendNMTOpn();
 
     myled = 0b111;
-    canPort.attach(CANdataRX,CAN::RxIrq);
+    canPort.attach(CANdataRX);
 
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("if EPOS4 dose not work. Press 'm'(set mode once again)\r\n");
