@@ -311,6 +311,7 @@ void printCANRX(void){
         num = num - 1;
         pc.printf("%02x",canmsgRx.data[num]);
     }
+    pc.printf("\r\n");
 }
 //CAN受信割り込み処理
 void CANdataRX(void){
