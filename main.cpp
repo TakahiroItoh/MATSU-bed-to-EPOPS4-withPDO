@@ -16,7 +16,6 @@
 USBSerial pc;
 char Serialdata;
 BusOut myled(LED1, LED2, LED3,LED4);
-int count=0;
 
 CANMessage canmsgTx;
 CANMessage canmsgRx;
@@ -28,8 +27,12 @@ Ticker SYNC;
 //NMT Message
 void sendNMTPreOpn(void);
 void sendNMTOpn(void);
-//SYNC Message
+//------------------SYNC関数-------------------
 void sendSYNC(void);
+//------------------PDO関数--------------------
+void sendCtrlTgtVel(void);
+void sendTgtVelCtrl(void);
+//------------------SDO関数--------------------
 //mode Setting
 void sendOPMode(int);       //Operating Mode
 //Control Word
@@ -161,6 +164,38 @@ void sendSYNC(void){
     canmsgTx.len = 0;
     canPort.write(canmsgTx);
     printCANRX();
+}
+//COB-ID:0x520 1000rpm
+void sendCtrlTgtVel(void){
+    canmsgTx.id = 0x520;
+    canmsgTx.len = 6;       //Data Length
+//-----------Target Velocity--------------
+    canmsgTx.data[0] = 0xE8;//1000rpm = 0x03E8
+    canmsgTx.data[1] = 0x03;//
+    canmsgTx.data[2] = 0x00;//
+    canmsgTx.data[3] = 0x00;//
+//---------Controlword(Enable)-------------
+    canmsgTx.data[4] = 0x0F;//data:0x00"0F"
+    canmsgTx.data[5] = 0x00;//data:0x"00"0F
+    printCANTX();          //CAN送信データをPCに表示
+    canPort.write(canmsgTx);//CANでデータ送信
+    wait(0.2);
+}
+//COB-ID:0x420 2000rpm
+void sendTgtVelCtrl(void);{
+    canmsgTx.id = 0x420;
+    canmsgTx.len = 6;       //Data Length
+//-----------Target Velocity--------------
+    canmsgTx.data[0] = 0xD0;//2000rpm = 0x07D0
+    canmsgTx.data[1] = 0x07;//
+    canmsgTx.data[2] = 0x00;//
+    canmsgTx.data[3] = 0x00;//
+//---------Controlword(Enable)-------------
+    canmsgTx.data[4] = 0x0F;//data:0x00"0F"
+    canmsgTx.data[5] = 0x00;//data:0x"00"0F
+    printCANTX();          //CAN送信データをPCに表示
+    canPort.write(canmsgTx);//CANでデータ送信
+    wait(0.2);
 }
 //0x2F-6060-00-03-//-//-//
 void sendOPMode(int nodeID){
