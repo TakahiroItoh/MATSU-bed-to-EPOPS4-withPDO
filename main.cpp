@@ -94,7 +94,7 @@ int main(){
             //目標速度を送信後、Enableコマンド送信
             pc.printf("Send Target Velocity\r\n");
             sendTgtVel(node1,rpm);
-            SYNC.attach(&sendSYNC,0.1);
+            SYNC.attach(&sendSYNC,0.04);
             Serialdata = 0;
             myled = 0b1111;
         }
