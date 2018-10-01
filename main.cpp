@@ -30,7 +30,6 @@ void sendNMTOpn(void);
 //------------------SYNC関数-------------------
 void sendSYNC(void);
 //------------------PDO関数--------------------
-void sendCtrlTgtVel(void);
 void sendTgtVelCtrl(void);
 //------------------SDO関数--------------------
 //mode Setting
@@ -102,12 +101,6 @@ int main(){
             Serialdata = 0;
             myled = 0b1111;
         }
-        else if(Serialdata == 'a'){
-            pc.printf("Send RxPDO Enable-TgtVel\r\n");
-            sendCtrlTgtVel();
-            Serialdata = 0;
-            myled = 0b1101;
-        }
         else if(Serialdata == 'd'){
             pc.printf("Send RxPDO TgtVel-Enable\r\n");
             sendTgtVelCtrl();
@@ -177,22 +170,6 @@ void sendSYNC(void){
     canmsgTx.len = 0;
     canPort.write(canmsgTx);
     printCANRX();
-}
-//COB-ID:0x520 1000rpm
-void sendCtrlTgtVel(void){
-    canmsgTx.id = 0x520;
-    canmsgTx.len = 6;       //Data Length
-//-----------Target Velocity--------------
-    canmsgTx.data[0] = 0xE8;//1000rpm = 0x03E8
-    canmsgTx.data[1] = 0x03;//
-    canmsgTx.data[2] = 0x00;//
-    canmsgTx.data[3] = 0x00;//
-//---------Controlword(Enable)-------------
-    canmsgTx.data[4] = 0x0F;//data:0x00"0F"
-    canmsgTx.data[5] = 0x00;//data:0x"00"0F
-    printCANTX();          //CAN送信データをPCに表示
-    canPort.write(canmsgTx);//CANでデータ送信
-    wait(0.2);
 }
 //COB-ID:0x420 2000rpm
 void sendTgtVelCtrl(void){
