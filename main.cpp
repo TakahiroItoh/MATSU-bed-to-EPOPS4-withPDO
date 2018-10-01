@@ -1,9 +1,15 @@
-//-------------------------------------------------------
+//------------------------------------------------------------
 //for MATSU-bed to EPOS4 with "PDO" communication
 //operating mode : "Profile Velocity Mode"
 //MATSU-bedからSYNC信号を送り、PDO communicationを行う
 //Created by Takahiro Itoh
-//-------------------------------------------------------
+//--------------------プログラムの流れ--------------------------
+//1.SDOコマンドでCtrlWord(Reset => Shutdown => Enable)を送信
+//2.NMTコマンドでPreOperationalからOperationalに変更
+//3.RxPDO2にModes of Operationalを送信
+//4.RxPDO3にTarget VelocityとCtrlWord(Enable)を送信,SYNC送信開始
+//5.RxPDO1にCtrlWord(Halt,Shutdown)を送信
+//-------------------------------------------------------------
 
 #include "mbed.h"
 #include "USBSerial.h"
@@ -13,10 +19,17 @@
 #define LED3 P0_27
 #define LED4 P0_26
 
+#define RxPDO1 0x220
+#define RxPDO2 0x320
+#define RxPDO3 0x420
+
+#define Halt 1
+#define QuickStop 2
+#define ShutDown 3
+
 USBSerial pc;
 char Serialdata;
 BusOut myled(LED1, LED2, LED3,LED4);
-int count=0;
 
 CANMessage canmsgTx;
 CANMessage canmsgRx;
@@ -24,23 +37,21 @@ CAN canPort(P0_13, P0_18);  //CAN name(PinName rd, PinName td)
 Ticker SYNC;
 
 //プロトタイプ宣言
-//------------------send関数-------------------
-//NMT Message
-void sendNMTPreOpn(void);
-void sendNMTOpn(void);
-//SYNC Message
+//------------------NMT-------------------
+void NMTPreOpn(void);
+void NMTOpn(void);
+//------------------SYNC-------------------
 void sendSYNC(void);
-//mode Setting
-void sendOPMode(int);       //Operating Mode
-//Control Word
+//------------------PDO--------------------
+void CtrlWord(int);         //RxPDO1
+void ModesOfOperation(void);//RxPDO2
+void TgtVelCtrl(int);       //RxPDO3
+//------------------SDO--------------------
 void sendCtrlRS(int);       //Reset
 void sendCtrlSD(int);       //Shutdown
-void sendCtrlEN(int);       //Switch on & Enable
-void sendCtrlQS(int);       //Quick Stop
-void sendCtrlHL(int);       //Halt
-//Velocity Setting
-void sendTgtVel(int,int);   //Target Velocity
+void sendCtrlEN(int);       //Enable
 //-------------------その他--------------------
+void initialize(int);
 void printCANTX(void);      //CAN送信データをPCに表示
 void printCANRX(void);      //CAN受信データをPCに表示
 void CANdataRX(void);       //CAN受信処理
@@ -51,11 +62,11 @@ int main(){
     pc.attach(SerialRX);        //Serial受信割り込み開始
     //CAN Setting
     canPort.frequency(1000000); //Bit Rate:1MHz
-    int node1 = 1;              //CAN node
+    int node = 1;               //CAN node数
     //User Setting
     int rpm = 4000;             //Velocity[rpm]
-    myled = 0b0101;
 
+    myled = 0b0101;
     pc.printf("Press 's' to Start\r\n");
     while(1){
         if(Serialdata == 's'){
@@ -69,75 +80,56 @@ int main(){
     myled = 0b0011;
     wait(1);
 
-    //コントロールワードのリセット
-    pc.printf("Send Reset Command\r\n");
-    sendCtrlRS(node1);
-    //Shutdown,Enableコマンド送信｜リセット
-    pc.printf("Send Shutdown Command\r\n");
-    sendCtrlSD(node1);
-    pc.printf("Send SW on & Enable Command\r\n");
-    sendCtrlEN(node1);
-    //NMTコマンドの送信
-    pc.printf("Send NMT PreOperational Command\r\n");
-    sendNMTPreOpn();
-    pc.printf("Send NMT Operational Command\r\n");
-    sendNMTOpn();
+    //node初期化
+    initialize(node);
     myled = 0b0111;
     canPort.attach(CANdataRX,CAN::RxIrq);  //CAN受信割り込み開始
 
-    pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
-    pc.printf("If EPOS4 dose not work, press 'm'(set mode once again)\r\n");
+    pc.printf("'m'=Mode set, 't'=TgtVel, 'h'=Halt, 'q'=END\r\n");
+    SYNC.attach(&sendSYNC,0.1);
     //-------------------------------------------
     while(1){
         //-------------送信コマンドを選択--------------
         if(Serialdata == 't'){
-            //目標速度を送信後、Enableコマンド送信
-            pc.printf("Send Target Velocity\r\n");
-            sendTgtVel(node1,rpm);
-            SYNC.attach(&sendSYNC,0.04);
+            pc.printf("Send RxPDO TgtVel-Enable\r\n");
+            TgtVelCtrl(rpm);
             Serialdata = 0;
             myled = 0b1111;
         }
         else if(Serialdata == 'h'){
             //Haltコマンド送信
             pc.printf("Send Halt Command\r\n");
-            sendCtrlHL(node1);
+            CtrlWord(Halt);
             Serialdata = 0;
             myled = 0b0111;
         }
         else if(Serialdata == 'q'){
             //quick stopコマンド送信
-            SYNC.detach();
             pc.printf("Send Quick Stop\r\nPROGRAM END\r\n");
-            sendCtrlQS(node1);
-            pc.printf("Send Shutdown Command\r\n");
-            sendCtrlSD(node1);
+            CtrlWord(QuickStop);
+            CtrlWord(ShutDown);
             Serialdata = 0;
             break;
         }
         else if(Serialdata == 'm'){
             pc.printf("Send Operating Mode\r\n");
-            sendOPMode(node1);
-            myled = 0b0011;
-            pc.printf("Send Reset Command\r\n");
-            sendCtrlRS(node1);
-            pc.printf("Send Shutdown Command\r\n");
-            sendCtrlSD(node1);
-            pc.printf("Send SW on & Enable Command\r\n");
-            sendCtrlEN(node1);
+            ModesOfOperation();
             myled = 0b0111;
             Serialdata = 0;
         }
         //-------------------------------------------
     }
+    wait(0.5);
+    SYNC.detach();
     while (1) {
         myled = 0b000;
         wait(0.5);
     }
 }
 
-//COB-ID:0 0x01-00-//-//-//-//-//-//
-void sendNMTPreOpn(void){
+//NMT
+void NMTPreOpn(void){
+    //COB-ID:0 0x01-00-//-//-//-//-//-//
     canmsgTx.id = 0x0;
     canmsgTx.len = 2;
     canmsgTx.data[0] = 0x80;//0x01:enter NMT state "PreOperational"
@@ -146,8 +138,8 @@ void sendNMTPreOpn(void){
     canPort.write(canmsgTx);
     wait(0.2);
 }
-//COB-ID:0 0x01-00-//-//-//-//-//-//
-void sendNMTOpn(void){
+void NMTOpn(void){
+    //COB-ID:0 0x01-00-//-//-//-//-//-//
     canmsgTx.id = 0x0;
     canmsgTx.len = 2;
     canmsgTx.data[0] = 0x01;//0x01:enter NMT state "Operational"
@@ -156,31 +148,57 @@ void sendNMTOpn(void){
     canPort.write(canmsgTx);
     wait(0.2);
 }
+//SYNC
 void sendSYNC(void){
     canmsgTx.id = 0x80;
     canmsgTx.len = 0;
     canPort.write(canmsgTx);
     printCANRX();
 }
-//0x2F-6060-00-03-//-//-//
-void sendOPMode(int nodeID){
-    canmsgTx.id = 0x600+nodeID;
-    canmsgTx.len = 5;       //Data Length
-    canmsgTx.data[0] = 0x2F;//|0Byte:40|1Byte:2F|2Byte:2B|4Byte:23|other:22|
-    canmsgTx.data[1] = 0x60;//Index LowByte
-    canmsgTx.data[2] = 0x60;//Index HighByte
-    canmsgTx.data[3] = 0x00;//sub-Index
-    canmsgTx.data[4] = 0x03;//data:0x03 = "Profile Velocity Mode"
-    /*
-    canmsgTx.data[5] = 0x00;//data:(user value)
-    canmsgTx.data[6] = 0x00;//data:(user value)
-    canmsgTx.data[7] = 0x00;//data:(user value)
-    */
+//PDO
+void CtrlWord(int type){
+    canmsgTx.id = RxPDO1;
+    canmsgTx.len = 2;       //Data Length
+    if(type==Halt){
+        canmsgTx.data[0] = 0x0F;//data:0x01"0F"
+        canmsgTx.data[1] = 0x01;//data:0x"01"0F
+    }
+    else if(type==QuickStop){
+        canmsgTx.data[0] = 0x0B;//data:0x00"0B"
+        canmsgTx.data[1] = 0x00;//data:0x"00"0B
+    }
+    else if(type==ShutDown){
+        canmsgTx.data[0] = 0x06;//data:0x00"06"
+        canmsgTx.data[1] = 0x00;//data:0x"00"06
+    }
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
     wait(0.2);
 }
-//0x2B-6040-00-0000-//-//
+void ModesOfOperation(void){
+    canmsgTx.id = RxPDO2;
+    canmsgTx.len = 1;       //Data Length
+    canmsgTx.data[0] = 0x03;//data:0x03 = "Profile Velocity Mode"
+    printCANTX();           //CAN送信データをPCに表示
+    canPort.write(canmsgTx);//CANでデータ送信
+}
+void TgtVelCtrl(int rpm){
+    pc.printf("%drpm|0x%08x\r\n",rpm,rpm);
+    canmsgTx.id = RxPDO3;
+    canmsgTx.len = 6;       //Data Length
+    //Target Velocity
+    for(char cnt=0;cnt<4;cnt++){
+        canmsgTx.data[cnt] = rpm % 256;
+        rpm = rpm / 256;
+    }
+    //CtrlWord Enable
+    canmsgTx.data[4] = 0x0F;//data:0x00"0F"
+    canmsgTx.data[5] = 0x00;//data:0x"00"0F
+    printCANTX();           //CAN送信データをPCに表示
+    canPort.write(canmsgTx);//CANでデータ送信
+    wait(0.2);
+}
+//SDO
 void sendCtrlRS(int nodeID){
     canmsgTx.id = 0x600+nodeID;
     canmsgTx.len = 6;       //Data Length
@@ -188,17 +206,12 @@ void sendCtrlRS(int nodeID){
     canmsgTx.data[1] = 0x40;//Index LowByte
     canmsgTx.data[2] = 0x60;//Index HighByte
     canmsgTx.data[3] = 0x00;//sub-Index
-    canmsgTx.data[4] = 0x80;//data:0x00"80" = "Controlword(Shutdown)"
+    canmsgTx.data[4] = 0x80;//data:0x00"80" = "Controlword(Reset)"
     canmsgTx.data[5] = 0x00;//data:0x"00"80
-    /*
-    canmsgTx.data[6] = 0x00;//data:(user value)
-    canmsgTx.data[7] = 0x00;//data:(user value)
-    */
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
     wait(0.2);
 }
-//0x2B-6040-00-0006-//-//
 void sendCtrlSD(int nodeID){
     canmsgTx.id = 0x600+nodeID;
     canmsgTx.len = 6;       //Data Length
@@ -208,15 +221,10 @@ void sendCtrlSD(int nodeID){
     canmsgTx.data[3] = 0x00;//sub-Index
     canmsgTx.data[4] = 0x06;//data:0x00"06" = "Controlword(Shutdown)"
     canmsgTx.data[5] = 0x00;//data:0x"00"06
-    /*
-    canmsgTx.data[6] = 0x00;//data:(user value)
-    canmsgTx.data[7] = 0x00;//data:(user value)
-    */
-    printCANTX();          //CAN送信データをPCに表示
+    printCANTX();           //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
     wait(0.2);
 }
-//0x2B-6040-00-000F-//-//
 void sendCtrlEN(int nodeID){
     canmsgTx.id = 0x600+nodeID;
     canmsgTx.len = 6;       //Data Length
@@ -226,73 +234,28 @@ void sendCtrlEN(int nodeID){
     canmsgTx.data[3] = 0x00;//sub-Index
     canmsgTx.data[4] = 0x0F;//data:0x00"0F" = "Controlword(Enable)"
     canmsgTx.data[5] = 0x00;//data:0x"00"0F
-    /*
-    canmsgTx.data[6] = 0x00;//data:(user value)
-    canmsgTx.data[7] = 0x00;//data:(user value)
-    */
     printCANTX();          //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
     wait(0.2);
 }
-//0x2B-6040-00-000B-//-//
-void sendCtrlQS(int nodeID){
-    canmsgTx.id = 0x600+nodeID;
-    canmsgTx.len = 6;       //Data Length
-    canmsgTx.data[0] = 0x2B;//|0Byte:40|1Byte:2F|2Byte:2B|4Byte:23|other:22|
-    canmsgTx.data[1] = 0x40;//Index LowByte
-    canmsgTx.data[2] = 0x60;//Index HighByte
-    canmsgTx.data[3] = 0x00;//sub-Index
-    canmsgTx.data[4] = 0x0B;//data:0x00"0B" = "Quick Stop"
-    canmsgTx.data[5] = 0x00;//data:0x"00"0B
-    /*
-    canmsgTx.data[6] = 0x00;//data:(user value)
-    canmsgTx.data[7] = 0x00;//data:(user value)
-    */
-    printCANTX();          //CAN送信データをPCに表示
-    canPort.write(canmsgTx);//CANでデータ送信
-    wait(0.2);
-}
-//0x2B-6040-00-010F-//-//
-void sendCtrlHL(int nodeID){
-    canmsgTx.id = 0x600+nodeID;
-    canmsgTx.len = 6;       //Data Length
-    canmsgTx.data[0] = 0x2B;//|0Byte:40|1Byte:2F|2Byte:2B|4Byte:23|other:22|
-    canmsgTx.data[1] = 0x40;//Index LowByte
-    canmsgTx.data[2] = 0x60;//Index HighByte
-    canmsgTx.data[3] = 0x00;//sub-Index
-    canmsgTx.data[4] = 0x0F;//data:0x01"0F" = "Halt"
-    canmsgTx.data[5] = 0x01;//data:0x"01"0F
-    /*
-    canmsgTx.data[6] = 0x00;//data:(user value)
-    canmsgTx.data[7] = 0x00;//data:(user value)
-    */
-    printCANTX();          //CAN送信データをPCに表示
-    canPort.write(canmsgTx);//CANでデータ送信
-    wait(0.2);
-}
-//0x2B-60FF-00-[user data(4Byte)]
-void sendTgtVel(int nodeID,int rpm){
-    pc.printf("%drpm|0x%08x\r\n",rpm,rpm);  //回転数送信データの表示
-    canmsgTx.id = 0x600+nodeID;
-    canmsgTx.len = 8;       //Data Length
-    canmsgTx.data[0] = 0x23;//|0Byte:40|1Byte:2F|2Byte:2B|4Byte:23|other:22|
-    canmsgTx.data[1] = 0xFF;//Index LowByte
-    canmsgTx.data[2] = 0x60;//Index HighByte
-    canmsgTx.data[3] = 0x00;//sub-Index
-    //下位から1Byteずつdataに格納
-    for(char cnt=4;cnt<8;cnt++){
-        canmsgTx.data[cnt] = rpm % 256;
-        rpm = rpm / 256;
+//初期化
+void initialize(int node){
+    //SDOコマンドで各nodeをリセット
+    for(int nodeID=1;nodeID <= node;nodeID++){
+        pc.printf("Send Reset CtrlWord Command node:%d\r\n",nodeID);
+        sendCtrlRS(nodeID);
+        pc.printf("Send Shutdown Command node:%d\r\n",nodeID);
+        sendCtrlSD(nodeID);
+        pc.printf("Send Enable Command node:%d\r\n",nodeID);
+        sendCtrlEN(nodeID);
+        pc.printf("----------------------------------------\r\n");
     }
-    printCANTX();          //CAN送信データをPCに表示
-    canPort.write(canmsgTx);//CANでデータ送信
-    wait(0.5);
-    //send Enable
-    pc.printf("Send Enable Command\r\n");
-    sendCtrlEN(nodeID);
-    wait(0.5);
+    //NMTコマンドで全nodeをオペレーショナルに
+    pc.printf("Send NMT PreOperational Command\r\n");
+    NMTPreOpn();
+    pc.printf("Send NMT Operational Command\r\n");
+    NMTOpn();
 }
-
 //送信データの表示
 void printCANTX(void){
     //0x canID|Byte0|Byte1|Byte2|Byte3|Byte4|Byte5|Byte6|Byte7|
