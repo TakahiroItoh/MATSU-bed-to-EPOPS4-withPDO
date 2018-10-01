@@ -1,4 +1,4 @@
 # MATSU-bed-to-EPOPS4-withPDO
-MATSU-bedでCANopenのPDO Communicationを用いて一定周期ごとに値を取得する  
+MATSU-bedでCANopenのSYNC, TxPDOを用いて一定周期ごとに値を取得する  
 
-still in progress
+SDO通信でモーターを回転させた後、25HzでSYNC信号を送り回転速度などのデータを取得します
