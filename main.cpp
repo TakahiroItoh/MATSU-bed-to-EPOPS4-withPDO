@@ -90,6 +90,7 @@ int main(){
 
     pc.printf("Press 't'=TgtVel 'h'=Halt 'q'=END\r\n");
     pc.printf("If EPOS4 dose not work, press 'm'(set mode once again)\r\n");
+    pc.printf("RxPDO 'a'=sendCtrlTgtVel 'd'=sendTgtVelCtrl\r\n");
     //-------------------------------------------
     while(1){
         //-------------送信コマンドを選択--------------
@@ -97,9 +98,21 @@ int main(){
             //目標速度を送信後、Enableコマンド送信
             pc.printf("Send Target Velocity\r\n");
             sendTgtVel(node1,rpm);
-            SYNC.attach(&sendSYNC,0.04);
+            SYNC.attach(&sendSYNC,0.1);
             Serialdata = 0;
             myled = 0b1111;
+        }
+        else if(Serialdata == 'a'){
+            pc.printf("Send RxPDO Enable-TgtVel\r\n");
+            sendCtrlTgtVel();
+            Serialdata = 0;
+            myled = 0b1101;
+        }
+        else if(Serialdata == 'd'){
+            pc.printf("Send RxPDO TgtVel-Enable\r\n");
+            sendTgtVelCtrl();
+            Serialdata = 0;
+            myled = 0b1011;
         }
         else if(Serialdata == 'h'){
             //Haltコマンド送信
@@ -182,7 +195,7 @@ void sendCtrlTgtVel(void){
     wait(0.2);
 }
 //COB-ID:0x420 2000rpm
-void sendTgtVelCtrl(void);{
+void sendTgtVelCtrl(void){
     canmsgTx.id = 0x420;
     canmsgTx.len = 6;       //Data Length
 //-----------Target Velocity--------------
