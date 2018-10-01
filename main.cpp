@@ -171,7 +171,7 @@ void CtrlWord(int type){
         canmsgTx.data[0] = 0x06;//data:0x00"06"
         canmsgTx.data[1] = 0x00;//data:0x"00"06
     }
-    printCANTX();          //CAN送信データをPCに表示
+    printCANTX();           //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
     wait(0.2);
 }
@@ -208,7 +208,7 @@ void sendCtrlRS(int nodeID){
     canmsgTx.data[3] = 0x00;//sub-Index
     canmsgTx.data[4] = 0x80;//data:0x00"80" = "Controlword(Reset)"
     canmsgTx.data[5] = 0x00;//data:0x"00"80
-    printCANTX();          //CAN送信データをPCに表示
+    printCANTX();           //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
     wait(0.2);
 }
@@ -234,7 +234,7 @@ void sendCtrlEN(int nodeID){
     canmsgTx.data[3] = 0x00;//sub-Index
     canmsgTx.data[4] = 0x0F;//data:0x00"0F" = "Controlword(Enable)"
     canmsgTx.data[5] = 0x00;//data:0x"00"0F
-    printCANTX();          //CAN送信データをPCに表示
+    printCANTX();           //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
     wait(0.2);
 }
