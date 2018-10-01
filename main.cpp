@@ -62,7 +62,7 @@ int main(){
     pc.attach(SerialRX);        //Serial受信割り込み開始
     //CAN Setting
     canPort.frequency(1000000); //Bit Rate:1MHz
-    int node = 1;               //CAN node数
+    int node = 2;               //CAN node数
     //User Setting
     int rpm = 4000;             //Velocity[rpm]
 
@@ -86,7 +86,7 @@ int main(){
     canPort.attach(CANdataRX,CAN::RxIrq);  //CAN受信割り込み開始
 
     pc.printf("'m'=Mode set, 't'=TgtVel, 'h'=Halt, 'q'=END\r\n");
-    SYNC.attach(&sendSYNC,0.1);
+    SYNC.attach(&sendSYNC,0.04);
     //-------------------------------------------
     while(1){
         //-------------送信コマンドを選択--------------
@@ -173,7 +173,6 @@ void CtrlWord(int type){
     }
     printCANTX();           //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
-    wait(0.2);
 }
 void ModesOfOperation(void){
     canmsgTx.id = RxPDO2;
@@ -196,7 +195,6 @@ void TgtVelCtrl(int rpm){
     canmsgTx.data[5] = 0x00;//data:0x"00"0F
     printCANTX();           //CAN送信データをPCに表示
     canPort.write(canmsgTx);//CANでデータ送信
-    wait(0.2);
 }
 //SDO
 void sendCtrlRS(int nodeID){
