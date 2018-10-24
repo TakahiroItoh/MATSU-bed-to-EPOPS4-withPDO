@@ -31,8 +31,11 @@ USBSerial pc;
 char Serialdata;
 BusOut myled(LED1, LED2, LED3,LED4);
 
+//回転速度指定
+int rpm = 4000;             //Velocity[rpm]
+
 CANMessage canmsgTx;
-CANMessage canmsgRx;
+//CANMessage canmsgRx;
 CAN canPort(P0_13, P0_18);  //CAN name(PinName rd, PinName td)
 Ticker SYNC;
 
@@ -53,8 +56,8 @@ void sendCtrlEN(int);       //Enable
 //-------------------その他--------------------
 void initialize(int);
 void printCANTX(void);      //CAN送信データをPCに表示
-void printCANRX(void);      //CAN受信データをPCに表示
-void CANdataRX(void);       //CAN受信処理
+//void printCANRX(void);      //CAN受信データをPCに表示
+//void CANdataRX(void);       //CAN受信処理
 void SerialRX(void);        //Serial受信処理
 
 int main(){
@@ -63,8 +66,6 @@ int main(){
     //CAN Setting
     canPort.frequency(1000000); //Bit Rate:1MHz
     int node = 2;               //CAN node数
-    //User Setting
-    int rpm = 4000;             //Velocity[rpm]
 
     myled = 0b0101;
     pc.printf("Press 's' to Start\r\n");
@@ -83,46 +84,25 @@ int main(){
     //node初期化
     initialize(node);
     myled = 0b0111;
-    canPort.attach(CANdataRX,CAN::RxIrq);  //CAN受信割り込み開始
-
+//    canPort.attach(CANdataRX,CAN::RxIrq);  //CAN受信割り込み開始
     pc.printf("'m'=Mode set, 't'=TgtVel, 'h'=Halt, 'q'=END\r\n");
-    SYNC.attach(&sendSYNC,0.04);
+    SYNC.attach(&sendSYNC,0.02);
+    myled = 0b1111;
     //-------------------------------------------
     while(1){
-        //-------------送信コマンドを選択--------------
-        if(Serialdata == 't'){
-            pc.printf("Send RxPDO TgtVel-Enable\r\n");
-            TgtVelCtrl(rpm);
-            Serialdata = 0;
-            myled = 0b1111;
-        }
-        else if(Serialdata == 'h'){
-            //Haltコマンド送信
-            pc.printf("Send Halt Command\r\n");
-            CtrlWord(Halt);
-            Serialdata = 0;
-            myled = 0b0111;
-        }
-        else if(Serialdata == 'q'){
-            //quick stopコマンド送信
-            pc.printf("Send Quick Stop\r\nPROGRAM END\r\n");
-            CtrlWord(QuickStop);
-            CtrlWord(ShutDown);
-            Serialdata = 0;
-            break;
-        }
-        else if(Serialdata == 'm'){
-            pc.printf("Send Operating Mode\r\n");
-            ModesOfOperation();
-            myled = 0b0111;
-            Serialdata = 0;
-        }
-        //-------------------------------------------
+        myled =~ myled;
+        wait(0.5);
+        if(Serialdata == 'q')break;
     }
+    //quick stopコマンド送信
+    pc.printf("Send Quick Stop\r\nPROGRAM END\r\n");
+    CtrlWord(QuickStop);
+    wait(0.5);
+    CtrlWord(ShutDown);
     wait(0.5);
     SYNC.detach();
     while (1) {
-        myled = 0b000;
+        myled = 0b0000;
         wait(0.5);
     }
 }
@@ -153,7 +133,7 @@ void sendSYNC(void){
     canmsgTx.id = 0x80;
     canmsgTx.len = 0;
     canPort.write(canmsgTx);
-    printCANRX();
+//    printCANRX();
 }
 //PDO
 void CtrlWord(int type){
@@ -263,6 +243,7 @@ void printCANTX(void){
     }
     pc.printf("\r\n");
 }
+/*
 //受信データの表示
 void printCANRX(void){
     char num;
@@ -278,8 +259,29 @@ void printCANRX(void){
 void CANdataRX(void){
     canPort.read(canmsgRx);
 }
+*/
 //Serial受信割り込み処理
 void SerialRX(void){
     Serialdata = pc.getc();
     pc.printf("%c\r\n",Serialdata);
+    //-------------送信コマンドを選択--------------
+    if(Serialdata == 't'){
+        pc.printf("Send RxPDO TgtVel-Enable\r\n");
+        TgtVelCtrl(rpm);
+        Serialdata = 0;
+        myled = 0b1111;
+    }
+    else if(Serialdata == 'h'){
+        //Haltコマンド送信
+        pc.printf("Send Halt Command\r\n");
+        CtrlWord(Halt);
+        Serialdata = 0;
+        myled = 0b0111;
+    }
+    else if(Serialdata == 'm'){
+        pc.printf("Send Operating Mode\r\n");
+        ModesOfOperation();
+        myled = 0b0111;
+        Serialdata = 0;
+    }
 }
