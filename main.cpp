@@ -266,10 +266,25 @@ void SerialRX(void){
     pc.printf("%c\r\n",Serialdata);
     //-------------送信コマンドを選択--------------
     if(Serialdata == 't'){
-        pc.printf("Send RxPDO TgtVel-Enable\r\n");
-        TgtVelCtrl(rpm);
+        //pc.printf("Send RxPDO TgtVel-Enable\r\n");
+        TgtVelCtrl(1000);
         Serialdata = 0;
-        myled = 0b1111;
+    }
+    else if(Serialdata == 'y'){
+        TgtVelCtrl(2000);
+        Serialdata = 0;
+    }
+    else if(Serialdata == 'u'){
+        TgtVelCtrl(3000);
+        Serialdata = 0;
+    }
+    else if(Serialdata == 'i'){
+        TgtVelCtrl(500);
+        Serialdata = 0;
+    }
+    else if(Serialdata == 'o'){
+        TgtVelCtrl(0);
+        Serialdata = 0;
     }
     else if(Serialdata == 'h'){
         //Haltコマンド送信
