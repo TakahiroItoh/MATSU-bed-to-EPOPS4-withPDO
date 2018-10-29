@@ -34,6 +34,9 @@ BusOut myled(LED1, LED2, LED3,LED4);
 //回転速度指定
 int rpm = 4000;             //Velocity[rpm]
 
+//SYNC送信数
+int count = 0;
+
 CANMessage canmsgTx;
 //CANMessage canmsgRx;
 CAN canPort(P0_13, P0_18);  //CAN name(PinName rd, PinName td)
@@ -85,7 +88,7 @@ int main(){
     initialize(node);
     myled = 0b0111;
 //    canPort.attach(CANdataRX,CAN::RxIrq);  //CAN受信割り込み開始
-    pc.printf("'m'=Mode set, 't'=TgtVel, 'h'=Halt, 'q'=END\r\n");
+    pc.printf("'m'=Mode set, 't'=TgtVel, 'r'=read SYNC count 'h'=Halt, 'q'=END\r\n");
     SYNC.attach(&sendSYNC,0.02);
     myled = 0b1111;
     //-------------------------------------------
@@ -133,6 +136,7 @@ void sendSYNC(void){
     canmsgTx.id = 0x80;
     canmsgTx.len = 0;
     canPort.write(canmsgTx);
+    count++;
 //    printCANRX();
 }
 //PDO
@@ -284,6 +288,10 @@ void SerialRX(void){
     }
     else if(Serialdata == 'o'){
         TgtVelCtrl(0);
+        Serialdata = 0;
+    }
+    else if(Serialdata == 'r'){
+        pc.printf("count:%d\r\n",count);
         Serialdata = 0;
     }
     else if(Serialdata == 'h'){
