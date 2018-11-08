@@ -88,7 +88,9 @@ int main(){
     initialize(node);
     myled = 0b0111;
 //    canPort.attach(CANdataRX,CAN::RxIrq);  //CAN受信割り込み開始
-    pc.printf("'m'=Mode set, 't'=TgtVel, 'r'=read SYNC count 'h'=Halt, 'q'=END\r\n");
+    pc.printf("'r'=read SYNC count, 'h'=Halt, 'q'=END\r\n");
+    TgtVelCtrl(1000);
+    wait(0.1);
     SYNC.attach(&sendSYNC,0.02);
     myled = 0b1111;
     //-------------------------------------------
